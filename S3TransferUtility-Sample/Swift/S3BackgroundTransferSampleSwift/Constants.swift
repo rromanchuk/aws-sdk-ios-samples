@@ -20,3 +20,4 @@ import AWSCore
 
 let S3DownloadKeyName: String = "public/test-image.png"    // Name of file to be downloaded
 let S3UploadKeyName: String = "public/test-image.png"      // Name of file to be uploaded
+let S3TransferUtilityIdentifier: String = "transfer-debug-test"      // Name of file to be uploaded
