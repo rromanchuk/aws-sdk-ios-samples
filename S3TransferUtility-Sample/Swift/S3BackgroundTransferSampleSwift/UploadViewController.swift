@@ -15,6 +15,7 @@
 
 import UIKit
 import AWSS3
+import SVProgressHUD
 
 class UploadViewController: UIViewController, UINavigationControllerDelegate {
 
@@ -23,7 +24,6 @@ class UploadViewController: UIViewController, UINavigationControllerDelegate {
 
     
     let imagePicker = UIImagePickerController()
-    let transferUtility = AWSS3TransferUtility.default()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -61,11 +61,14 @@ extension UploadViewController: UploadManagerDelegate {
     func didStart() {
         self.statusLabel.text = "Uploading..."
         print("Upload Starting!")
+        SVProgressHUD.show()
+        
     }
     
     func didProgress(progress: Progress) {
         if (self.progressView.progress < Float(progress.fractionCompleted)) {
             self.progressView.progress = Float(progress.fractionCompleted)
+            SVProgressHUD.showProgress(Float(progress.fractionCompleted))
         }
     }
     
@@ -73,13 +76,16 @@ extension UploadViewController: UploadManagerDelegate {
         if let error = error {
             print("Failed with error: \(error)")
             self.statusLabel.text = "Failed"
+            SVProgressHUD.showError(withStatus: error.localizedDescription)
         }
         else if(self.progressView.progress != 1.0) {
             self.statusLabel.text = "Failed"
             NSLog("Error: Failed - Likely due to invalid region / filename")
+            SVProgressHUD.showError(withStatus: "Error: Failed - Likely due to invalid region / filename")
         }
-        else{
+        else {
             self.statusLabel.text = "Success"
+            SVProgressHUD.dismiss()
         }
     }
     
@@ -93,8 +99,7 @@ extension UploadViewController: UIImagePickerControllerDelegate {
             let image: UIImage = info[UIImagePickerControllerOriginalImage] as! UIImage
             self.uploadImage(with: UIImagePNGRepresentation(image)!)
         }
-        
-        
+    
         dismiss(animated: true, completion: nil)
     }
 }
@@ -109,19 +114,33 @@ protocol UploadManagerDelegate:class {
 class Manager {
     static let shared = Manager()
     
-    var transferUtility: AWSS3TransferUtility!
     var multipartCompletionHandler: AWSS3TransferUtilityMultiPartUploadCompletionHandlerBlock!
-    let expression = AWSS3TransferUtilityMultiPartUploadExpression()
-    var progressBlock: AWSS3TransferUtilityProgressBlock!
+    var expression: AWSS3TransferUtilityMultiPartUploadExpression!
     var multipartProgressBlock: AWSS3TransferUtilityMultiPartProgressBlock!
     weak var delegate: UploadManagerDelegate?
     
     
     init() {
+        
+        // Setup credentials
+        // AWSCognitoIdentityUserPoold
+        let credentialsProvider = AWSS3TransferUtility.default().configuration.credentialsProvider
+        
+        // Setup the service configuration
+        let configuration = AWSServiceConfiguration(region: .USEast1, credentialsProvider: credentialsProvider)
+        
+        // Setup the transfer utility configuration
+        let tuConf = AWSS3TransferUtilityConfiguration()
+        tuConf.isAccelerateModeEnabled = true
+        tuConf.retryLimit = 15
+        tuConf.multiPartConcurrencyLimit = 5
+        tuConf.bucket = AWSInfo.default().defaultServiceInfo("S3TransferUtility")?.infoDictionary["Bucket"] as? String
+        
+        
+        
         multipartProgressBlock = {(task, progress) in
             DispatchQueue.main.async(execute: {
                 self.delegate?.didProgress(progress: progress)
-                print("progressr: \(Float(progress.fractionCompleted))")
             })
         }
         
@@ -131,12 +150,29 @@ class Manager {
             })
         }
         
+        expression = AWSS3TransferUtilityMultiPartUploadExpression()
         expression.progressBlock = multipartProgressBlock
-        transferUtility = AWSS3TransferUtility.default()
+        
+        AWSS3TransferUtility.register(with: configuration!, transferUtilityConfiguration: tuConf, forKey: S3TransferUtilityIdentifier) { (error) in
+            guard error == nil else {
+                fatalError(error!.localizedDescription)
+                
+            }
+            print("Registration of \(S3TransferUtilityIdentifier) complete")
+            let transferUtility = AWSS3TransferUtility.s3TransferUtility(forKey: S3TransferUtilityIdentifier)
+            guard transferUtility != nil else {
+                fatalError("AWSS3TransferUtility is nil")
+            }
+        }
+        
     }
     
-    
     func upload(data: Data) {
+        let transferUtility = AWSS3TransferUtility.s3TransferUtility(forKey: S3TransferUtilityIdentifier)
+        guard transferUtility != nil else {
+            fatalError("AWSS3TransferUtility is nil")
+        }
+        
         transferUtility.uploadUsingMultiPart(data: data, key: S3UploadKeyName, contentType: "image/png", expression: expression, completionHandler: multipartCompletionHandler).continueWith { (task) -> AnyObject! in
             if let error = task.error {
                 print("Error: \(error.localizedDescription)")
@@ -153,9 +189,15 @@ class Manager {
     }
     
     func handleForeground() {
+        let transferUtility = AWSS3TransferUtility.s3TransferUtility(forKey: S3TransferUtilityIdentifier)
+        guard transferUtility != nil else {
+            fatalError("AWSS3TransferUtility is nil")
+        }
         
         if let multiPartUploadTasks = transferUtility.getMultiPartUploadTasks().result, let uploads = multiPartUploadTasks as? [AWSS3TransferUtilityMultiPartUploadTask] {
+            
             for task in uploads {
+                print("handleForeground() task.status.rawValue \(task.status.rawValue)")
                 task.setCompletionHandler(multipartCompletionHandler!)
                 task.setProgressBlock(multipartProgressBlock!)
             }
