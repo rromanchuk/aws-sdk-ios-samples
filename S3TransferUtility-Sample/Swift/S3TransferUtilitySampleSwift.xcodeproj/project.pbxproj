@@ -200,7 +200,6 @@
 					};
 					BDCC7EBA19DE50AB008B2510 = {
 						CreatedOnToolsVersion = 6.0.1;
-						DevelopmentTeam = U6NB388K62;
 						LastSwiftMigration = 0820;
 					};
 				};
@@ -506,7 +505,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				DEVELOPMENT_TEAM = U6NB388K62;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = S3BackgroundTransferSampleSwift/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -524,7 +523,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				DEVELOPMENT_TEAM = U6NB388K62;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = S3BackgroundTransferSampleSwift/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
