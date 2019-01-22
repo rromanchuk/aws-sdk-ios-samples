@@ -26,13 +26,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                      handleEventsForBackgroundURLSession identifier: String,
                      completionHandler: @escaping () -> Void) {
         
-        AWSMobileClient.sharedInstance().initialize { (userState, error) in
-            guard error == nil else {
-                print("Error initializing AWSMobileClient. Error: \(error!.localizedDescription)")
-                return
-            }
-            print("AWSMobileClient initialized.")
-        }
         
         //provide the completionHandler to the TransferUtility to support background transfers.
         AWSS3TransferUtility.interceptApplication(application,
@@ -41,6 +34,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        AWSDDLog.sharedInstance.logLevel = .debug
+        AWSDDLog.add(AWSDDTTYLogger.sharedInstance)
+        let _ = Manager.shared
         return true
+    }
+    
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        print("AppDelegate.applicationDidBecomeActive()")
+        Manager.shared.handleForeground()
     }
 }
