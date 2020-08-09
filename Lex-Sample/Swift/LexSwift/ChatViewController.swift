@@ -22,15 +22,15 @@ let ServerSenderId = "Server"
 
 class ChatViewController: JSQMessagesViewController, JSQMessagesComposerTextViewPasteDelegate {
 
-    var messages: [JSQMessage]?
-    var interactionKit: AWSLexInteractionKit?
-    var sessionAttributes: [AnyHashable: Any]?
-    var outgoingBubbleImageData: JSQMessagesBubbleImage?
-    var incomingBubbleImageData: JSQMessagesBubbleImage?
+    @objc var messages: [JSQMessage]?
+    @objc var interactionKit: AWSLexInteractionKit?
+    @objc var sessionAttributes: [AnyHashable: Any]?
+    @objc var outgoingBubbleImageData: JSQMessagesBubbleImage?
+    @objc var incomingBubbleImageData: JSQMessagesBubbleImage?
     
-    var speechMessage: JSQMessage?
-    var speechIndex: Int = 0
-    var textModeSwitchingCompletion: AWSTaskCompletionSource<NSString>?
+    @objc var speechMessage: JSQMessage?
+    @objc var speechIndex: Int = 0
+    @objc var textModeSwitchingCompletion: AWSTaskCompletionSource<NSString>?
     var count: Int?
     
     override func viewDidLoad() {
@@ -170,7 +170,7 @@ class ChatViewController: JSQMessagesViewController, JSQMessagesComposerTextView
 // MARK: Interaction Kit
 extension ChatViewController: AWSLexInteractionDelegate {
     
-    public func interactionKitOnRecordingEnd(_ interactionKit: AWSLexInteractionKit, audioStream: Data, contentType: String) {
+    @objc public func interactionKitOnRecordingEnd(_ interactionKit: AWSLexInteractionKit, audioStream: Data, contentType: String) {
         DispatchQueue.main.async(execute: {
             let audioItem = JSQAudioMediaItem(data: audioStream)
             self.speechMessage = JSQMessage(senderId: ClientSenderId, displayName: "", media: audioItem)
@@ -197,7 +197,16 @@ extension ChatViewController: AWSLexInteractionDelegate {
                     self.finishSendingMessage(animated: true)
                 }
             } else {
-                message = JSQMessage(senderId: ServerSenderId, senderDisplayName: "", date: Date(), text: switchModeInput.outputText!)
+                //if you have special characters you need to be returned, make sure you base 64 encode your responses in your bot and then they will be decoded here as needed.
+                guard let text = switchModeInput.outputText else {
+                    return //no response was returned
+                }
+                if let base64DecodedText = text.base64Decoded {
+                    message = JSQMessage(senderId: ServerSenderId, senderDisplayName: "", date: Date(), text: base64DecodedText)
+                } else {
+                    message = JSQMessage(senderId: ServerSenderId, senderDisplayName: "", date: Date(), text: text)
+                }
+
                 self.messages?.append(message)
                 self.finishSendingMessage(animated: true)
             }

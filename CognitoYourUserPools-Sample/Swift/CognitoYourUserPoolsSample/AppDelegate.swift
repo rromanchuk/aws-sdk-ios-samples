@@ -29,7 +29,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var rememberDeviceCompletionSource: AWSTaskCompletionSource<NSNumber>?
     
     
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
         // Warn user if configuration not updated
@@ -58,9 +58,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         AWSCognitoIdentityUserPool.register(with: serviceConfiguration, userPoolConfiguration: poolConfiguration, forKey: AWSCognitoUserPoolsSignInProviderKey)
         
         // fetch the user pool client we initialized in above step
-        let pool = AWSCognitoIdentityUserPool(forKey: AWSCognitoUserPoolsSignInProviderKey)
+        AWSCognitoIdentityUserPool(forKey: AWSCognitoUserPoolsSignInProviderKey)?.delegate = self
         self.storyboard = UIStoryboard(name: "Main", bundle: nil)
-        pool.delegate = self
         
         return true
     }
